@@ -64,7 +64,7 @@ $(document).ready(function() {
       position: location,
       map: map,
       icon: "assets/bus.png",
-      animation: google.maps.Animation.DROP
+      // animation: google.maps.Animation.DROP
     });
 
   }
@@ -73,6 +73,35 @@ $(document).ready(function() {
     // moveMarker(destination);
     markerTest2();
   });
+
+  $('#add-stops').click(function() {
+
+    $.ajax({
+      type: "GET",
+      url: "/stops",
+      dataType: "json",
+      success: function(data){
+        $.each(data,function(i,item) {
+          // console.log(item);
+          plotBusStop(item.latitude,item.longitude);
+        });
+      }
+    });
+
+  });
+
+  var stops;
+  function plotBusStop(lat,lng) {
+
+    var pos = new google.maps.LatLng(lat, lng);
+    // console.log(pos);
+    var sky = new google.maps.Marker({
+      position: pos,
+      map: map
+    });
+    // stops.push(stop);
+
+  }
 
   function moveMarker(position) {
 
@@ -118,7 +147,7 @@ $(document).ready(function() {
     var fLat = 49.23;
     var fLng = -2.11;
     var newPos = new google.maps.LatLng(fLat, fLng);
-    var duration = 5000;
+    var duration = 3000;
 
     marker.animateTo(newPos, {
       easing: "linear",

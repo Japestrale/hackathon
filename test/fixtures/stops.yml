@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  code: 1
+  name: MyString
+  vix_name: MyString
+  easting: 1
+  northing: 1
+  latitude: 9.99
+  longitude: 9.99
+
+two:
+  code: 1
+  name: MyString
+  vix_name: MyString
+  easting: 1
+  northing: 1
+  latitude: 9.99
+  longitude: 9.99

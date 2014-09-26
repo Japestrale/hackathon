@@ -1,12 +1,14 @@
 Rails.application.routes.draw do
 
+  resources :stops, only: [:index]
+
   root 'static_pages#home'
 
-  resources :messages do
-    collection do
-      get 'events'
-    end
-  end
+  # resources :messages do
+  #   collection do
+  #     get 'events'
+  #   end
+  # end
 
 
 
