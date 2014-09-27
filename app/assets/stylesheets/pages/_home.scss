@@ -1,0 +1,72 @@
+.main-header {
+  padding: 15px;
+  background: $pelorous;
+}
+
+#map-canvas {
+  height: 100%;
+  img {
+    width: 45%;
+    float:left;
+  }
+  p, h2 {
+    width: 50%;
+    display:inline;
+    float:right;
+    margin-top: 0;
+  }
+  h2 {
+    margin-bottom: 5px;
+  }
+}
+
+.info-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 225px;
+  padding: 20px;
+  background: $white-smoke;
+
+  -webkit-box-shadow: 0 -4px 10px 0 $alto;  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+  -moz-box-shadow:    0 -4px 10px 0 $alto;  /* Firefox 3.5 - 3.6 */
+  box-shadow:         0 -4px 10px 0 $alto;  /* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */
+
+}
+.loading {
+  display: block;
+}
+.loaded {
+  display: none;
+}
+
+.closest-stop {
+  border-bottom: 1px solid $alto;
+}
+
+.next-bus-strapline {
+  @include font-size(14);
+  color: $sky-blue;
+  font-weight: 300;
+  margin-bottom: 0;
+}
+.next-buses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  @include font-size(20);
+  font-weight: 600;
+  li {
+    display: block;
+    color: $pelorous;
+    &:nth-child(even) {
+      color: $sky-blue;
+    }
+  }
+}
+.eta {
+  display: inline-block;
+  float: right;
+}
+

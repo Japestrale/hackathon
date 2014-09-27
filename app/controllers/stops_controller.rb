@@ -12,15 +12,22 @@ class StopsController < ApplicationController
     @stop = Stop.find(params[:id])
     # @stop = Stop.first
 
-    @dataset = 3
+    @dataset = 2
 
     @next_buses = []
 
 
-    @all_stopping_routes = @stop.journey_pattern_section_start_points
+    # @all_stopping_routes = @stop.journey_pattern_section_start_points
+    @all_stopping_routes = JourneyPatternSection.where(dataset_id: @dataset, from_stop_id: @stop.id)
+
+    # sql = "select * from journey_patterns jp inner join services s on s.id = jp.service_id and s.dataset_id = jp.dataset_id inner join journey_pattern_sections jps on jps.id = jp.journey_pattern_section_id and jps.dataset_id = jp.dataset_id where s.dataset_id = #{@dataset} and jps.from_stop_id = #{@stop.id}"
+
+    # @all_stopping_routes = ActiveRecord::Base.connection.execute(sql)
 
     # All sections that stop at this stop
     @all_stopping_routes.each do |jps|
+
+      puts jps.inspect
 
       # All journeys that stop at this stop for this dataset
       @journey_patterns = JourneyPattern.where(dataset_id: @dataset, journey_pattern_section_id: jps.id)
@@ -48,18 +55,20 @@ class StopsController < ApplicationController
 
           # Ok so this journey is gonna hit this stop at some point. We dont know when. We have to work out when
           departure_time = Time.zone.now.change({ hour: journey.departure_time.hour, min: journey.departure_time.min, sec: journey.departure_time.sec })
-          bus_hits_stop = departure_time + runtime.minutes
+          bus_hits_stop = departure_time + runtime.minutes - 1.hour
 
           # puts "#{jp.description} - #{jp.direction}: Leaves at: #{departure_time}. Hits stop at #{bus_hits_stop}. Runttime: #{runtime}"
 
           # We only care about buses that we can catch
           if bus_hits_stop > Time.zone.now
 
+            # puts "Hits stop at #{bus_hits_stop}. Time #{Time.zone.now}"
+
             time_until_bus_stops = (bus_hits_stop - Time.zone.now).to_i.abs / 60
             # puts "The bus will hit the stop in #{time_until_bus_stops}"
 
             route_name = Service.find_by(dataset_id: @dataset, id: jp.service_id).route_name
-            @next_buses << { route: route_name, description: jp.description, stops_at: bus_hits_stop, eta: time_until_bus_stops }
+            @next_buses << { route: route_name, destination: jp.destination_display, description: jp.description, stops_at: bus_hits_stop, eta: time_until_bus_stops }
 
           else
             # puts "Too late - This route has passed"

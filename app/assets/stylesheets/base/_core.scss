@@ -1,0 +1,31 @@
+/* --------------------------------------------------
+  General
+-------------------------------------------------- */
+
+* {
+  -webkit-box-sizing: border-box !important; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box !important;    /* Firefox, other Gecko */
+  box-sizing: border-box !important;         /* Opera/IE 8+ */
+  &:focus { outline: none; }
+}
+
+.left { float: left !important; }
+.right { float: right !important; }
+.hidden { display: none; }
+
+/*---------------------------------------------------
+  Hacks
+---------------------------------------------------*/
+.group:after {
+  display: table;
+  content: "";
+  clear: both;
+}
+.clear { clear: both; }
+
+
+
+
+
+
+

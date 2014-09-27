@@ -7,8 +7,26 @@ class RoutesController < ApplicationController
     auth = {:username => "hackathondemo", :password => "hackathondemo"}
     route = params[:id]
     response = self.class.get("/line/#{route}", basic_auth: auth)
+
+    data = JSON.parse(response.body)
+    data.delete_if do |item|
+
+      recorded_time = Time.parse(item[0]["RecordedAtTime"])
+      line = item[0]["MonitoredVehicleJourney"]["LineRef"]
+      # puts recorded_time
+
+      if recorded_time < Time.zone.now - 2.minutes || line != route
+        # puts "deleted"
+        true
+      else
+        false
+      end
+    end
+
+    # puts data.inspect
+
     respond_to do |format|
-      format.json { render json: response }
+      format.json { render json: data }
     end
 
   end
