@@ -1,11 +1,28 @@
 $(document).ready(function() {
 
   var map;
-  var marker;
-  var self;
+  var currentLat;
+  var currentLng;
+  var currentLatLng;
+  var stops = [];
+  var closestStop;
+  var liveBuses = {};
+
+  var directionDisplay;
+  var directionsService = new google.maps.DirectionsService();
+
   var jerseyPosition = new google.maps.LatLng(49.21, -2.13);
   var location = new google.maps.LatLng(49.21, -2.13);
   var destination = new google.maps.LatLng(49.20, -2.13);
+
+
+  var placesOfInterest = [
+    { lat: 49.2, lng: -2.1, description: "Text to go in info box" },
+    { lat: 49.2, lng: -2.13, description: "Text to go in info box" },
+  ];
+
+
+
 
   // Initialize the maps on window load
   google.maps.event.addDomListener(window, 'load', initialize);
@@ -41,21 +58,220 @@ $(document).ready(function() {
   // Initialize the two maps
   function initialize() {
 
+    directionsDisplay = new google.maps.DirectionsRenderer();
+
     // Create the map and center it on Jersey
     var mapOptions = {
           center: jerseyPosition,
-          zoom: 14,
-          minZoom: 11,
+          zoom: 13,
+          minZoom: 9,
           streetViewControl: false,
-          overviewMapControl: false,
-          mapTypeControl: false,
+          // overviewMapControl: false,
+          // mapTypeControl: false,
           styles: mapStyle,
 
     };
     map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
 
-    addMarker();
+    directionsDisplay.setMap(map);
+    directionsDisplay.setPanel(document.getElementById("directions-panel"));
+
   }
+
+
+  function plotCurrentLocation(position) {
+
+    currentLat = position.coords.latitude;
+    // currentLat = 49.22;
+    currentLng = position.coords.longitude;
+    // currentLng = -2.135;
+
+    currentLatLng = new google.maps.LatLng(currentLat, currentLng);
+
+    var marker = new google.maps.Marker({
+        position: currentLatLng,
+        map: map,
+        icon: "assets/male.png",
+        title: "You are here! (at least within a " + position.coords.accuracy + " meter radius)"
+    });
+
+    map.setCenter(marker.position);
+
+    // Add bus stops to map and compute closest stop
+    // addBusStops();
+    // getLiveRouteData(15);
+    // getLiveGeoData(49.21,-2.13);
+
+
+    // Plot places of interest on the map
+    $.each(placesOfInterest, function(i,item) {
+      plotThings(item.lat,item.lng,item.description);
+    });
+
+  }
+
+
+  function getLiveRouteData(route_id) {
+
+    $.ajax({
+      type: "GET",
+      url: "/routes/" + route_id + "/live",
+      dataType: "json",
+      success: function(data){
+        console.log(data);
+        $.each(data,function(i,item) {
+          // console.log(item[0].loc.coordinates);
+          plotBus(item[0].loc.coordinates[1],item[0].loc.coordinates[0],item[0]._id);
+        });
+        // console.log(liveBuses);
+      }
+    });
+  }
+
+
+  function getLiveGeoData(lat,lng) {
+
+    $.ajax({
+      type: "GET",
+      url: "/routes/geo",
+      data: { lat: lat, lng: lng },
+      dataType: "json",
+      success: function(data){
+        console.log(data);
+      }
+    });
+  }
+
+
+  function addBusStops() {
+
+    $.ajax({
+      type: "GET",
+      url: "/stops",
+      dataType: "json",
+      success: function(data){
+        $.each(data,function(i,item) {
+          plotBusStop(item.latitude,item.longitude);
+        });
+        findClosestMarker();
+      }
+    });
+
+  }
+
+  function plotBusStop(lat,lng) {
+
+    var pos = new google.maps.LatLng(lat, lng);
+    var stop = new google.maps.Marker({
+      position: pos,
+      map: map
+    });
+    stops.push(stop);
+  }
+
+
+  var infoWindow = new google.maps.InfoWindow({
+      content: "none",
+      maxWidth: 500
+  });
+
+  function plotBus(lat,lng,id) {
+
+    var pos = new google.maps.LatLng(lat, lng);
+    var marker = new google.maps.Marker({
+      position: pos,
+      map: map,
+      icon: "assets/bus.png"
+    });
+    liveBuses[id] = marker;
+
+    (function (marker, description) {
+        google.maps.event.addListener(marker, "click", function (e) {
+            infoWindow.setContent(description);
+            infoWindow.open(map, marker);
+        });
+    })(marker, "Test");
+
+  }
+
+
+
+  function plotThings(lat,lng,description) {
+    var pos = new google.maps.LatLng(lat, lng);
+    var marker = new google.maps.Marker({
+      position: pos,
+      map: map
+    });
+
+    var description = '<h2 style="width:500px; height: 200px;">The living legend</h2><p>Joe bloggs</p>';
+
+    (function (marker, description) {
+        google.maps.event.addListener(marker, "click", function (e) {
+            infoWindow.setContent(description);
+            infoWindow.open(map, marker);
+        });
+    })(marker, description);
+
+  }
+
+
+
+
+  function rad(x) {return x*Math.PI/180;}
+  function findClosestMarker() {
+
+    var R = 6371; // radius of earth in km
+    var distances = [];
+    var closest = -1;
+    for( i=0;i<stops.length; i++ ) {
+      var mlat = stops[i].position.lat();
+      var mlng = stops[i].position.lng();
+      var dLat  = rad(mlat - currentLat);
+      var dLong = rad(mlng - currentLng);
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(rad(currentLat)) * Math.cos(rad(currentLat)) * Math.sin(dLong/2) * Math.sin(dLong/2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      var d = R * c;
+      distances[i] = d;
+      // stops[i].setTitle("Distance: "+ d);
+      if ( closest == -1 || d < distances[closest] ) {
+          closest = i;
+      }
+    }
+
+    // console.log(stops[closest]);
+    closestStop = stops[closest];
+    stops[closest].setIcon('assets/bus.png');
+    routeToClosestMarker();
+
+  }
+
+  function routeToClosestMarker () {
+
+
+    var request = {
+      origin: currentLatLng,
+      destination: closestStop.position,
+      travelMode: google.maps.DirectionsTravelMode.WALKING
+    };
+
+    directionsService.route(request, function(response, status) {
+      // console.log(status);
+      // console.log(response);
+      if (status == google.maps.DirectionsStatus.OK) {
+        directionsDisplay.setDirections(response);
+      }
+    });
+
+  }
+
+
+
+
+
+
+
+
 
 
   function addMarker() {
@@ -66,42 +282,11 @@ $(document).ready(function() {
       icon: "assets/bus.png",
       // animation: google.maps.Animation.DROP
     });
-
   }
 
   $('#animate').click(function(){
-    // moveMarker(destination);
-    markerTest2();
+    moveMarkerAndPan();
   });
-
-  $('#add-stops').click(function() {
-
-    $.ajax({
-      type: "GET",
-      url: "/stops",
-      dataType: "json",
-      success: function(data){
-        $.each(data,function(i,item) {
-          // console.log(item);
-          plotBusStop(item.latitude,item.longitude);
-        });
-      }
-    });
-
-  });
-
-  var stops;
-  function plotBusStop(lat,lng) {
-
-    var pos = new google.maps.LatLng(lat, lng);
-    // console.log(pos);
-    var sky = new google.maps.Marker({
-      position: pos,
-      map: map
-    });
-    // stops.push(stop);
-
-  }
 
   function moveMarker(position) {
 
@@ -112,35 +297,11 @@ $(document).ready(function() {
       duration: 100,
       complete: function() {
         // alert("animation complete");
-        moveMarker(location);
       }
     });
   }
 
-  var i = 0; var j = 0;
-  function markerTest() {
-
-    if (i > 0.02) {
-      return
-    }
-    var newLat = 49.21 + i;
-    var newLng = -2.13 + j;
-    var newPos = new google.maps.LatLng(newLat, newLng);
-
-    map.panTo(newPos);
-
-    marker.animateTo(newPos, {
-      easing: "easeInOut",
-      duration: 10,
-      complete: function() {
-        i = i + 0.001
-        j = j + 0.001
-        markerTest();
-      }
-    });
-  }
-
-  function markerTest2() {
+  function moveMarkerAndPan() {
 
     var sLat = 49.21;
     var sLng = -2.13;
@@ -156,7 +317,6 @@ $(document).ready(function() {
 
       }
     });
-
     smoothPan(sLat,fLat,sLng,fLng,duration);
   }
 
@@ -168,109 +328,15 @@ $(document).ready(function() {
     var increments = duration / panTime;
     var iLat = cLat / increments;
     var iLng = cLng / increments;
-    console.log(increments);
 
     for (i=0; i<=increments; i++) {
       var newPos = new google.maps.LatLng(sLat + i*iLat, sLng + i*iLng);
-      // console.log(newPos);
-
       (function(i,newPos,panTime){
         setTimeout(function(){
           map.panTo(newPos);
-          // console.log(newPos);
-          // console.log(i);
-          // console.log(i*panTime);
         },i*panTime)
       }(i,newPos,panTime));
-
     }
   }
-
-  function findMe() {
-
-
-
-      // // What to do if a bearing is clicked on
-      // $('.bearing').click(function(){
-
-      //   bearing = $(this).data('bearing');
-      //   activity = 0;
-
-      //   var dataStr = "add_entry=true&lat=" + lat + "&lng=" + lng + "&bearing=" + bearing + "&activity=" + activity;
-
-      //   $.ajax({
-      //     type: 'post',
-      //     url: "submit.php",
-      //     data: dataStr,
-      //     dataType: 'json',
-      //     success: function(data) {
-      //       // console.log('success');
-      //       alert('Sighting added!');
-      //     },
-      //     error: function(error) {
-      //       console.log(error);
-      //     }
-      //   });
-
-      // });
-
-      // $('#refresh').click(function(){
-
-      //   $('#bearings').fadeOut(200);
-      //   $('#status').fadeIn(200);
-      //   $('#refresh').fadeOut(200);
-
-      //   navigator.geolocation.getCurrentPosition(function(position){
-
-      //     lat = position.coords.latitude;
-      //     lng = position.coords.longitude;
-      //     latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-      //     map.setCenter(latlng);
-      //     marker.setPosition(latlng);
-
-      //     $('#status').fadeOut(200);
-      //     $('#bearings').fadeIn(200);
-      //     $('#refresh').fadeIn(200);
-      //   },
-      //   function(msg){
-      //     console.log(msg);
-      //   },
-      //   {
-      //     timeout: 0,
-      //     enableHighAccuracy: true,
-      //     maximumAge: Infinity
-      //   });
-      // });
-
-  }
-
-  function plotCurrentLocation(position) {
-
-    // console.log(position.coords);
-    lat = position.coords.latitude;
-    lng = position.coords.longitude;
-
-    // $('#status').fadeOut(200);
-    // $('#bearings').fadeIn(200);
-    // $('#refresh').fadeIn(200);
-
-    latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-    // mapOptions = {
-    //   zoom: 15,
-    //   center: latlng,
-    //   mapTypeControl: false,
-    //   navigationControlOptions: {style: google.maps.NavigationControlStyle.SMALL},
-    //   mapTypeId: google.maps.MapTypeId.ROADMAP
-    // };
-    // map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
-
-    self = new google.maps.Marker({
-        position: latlng,
-        map: map,
-        title:"You are here! (at least within a "+position.coords.accuracy+" meter radius)"
-    });
-  }
-
-
 
 });
