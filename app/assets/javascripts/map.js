@@ -9,6 +9,7 @@ $(document).ready(function() {
   var busStopMarkers = [];
 
   var closestBusStop;
+  var closestBusStopLatLng;
   var closestBusStopMarker;
   var liveBuses = {};
 
@@ -238,6 +239,7 @@ $(document).ready(function() {
 
     // Mark this bus stop as the closest
     closestBusStop = busStops[closest];
+    closestBusStopLatLng = new google.maps.LatLng( busStops[closest].latitude, busStops[closest].longitude);
     closestBusStopMarker = busStopMarkers[closest];
 
     // Show the marker on the map
@@ -245,6 +247,10 @@ $(document).ready(function() {
 
     // Plot a route to this marker and display directions
     routeToClosestMarker();
+
+    // Set the bounds of the map to just surround you and your closest bus stop
+    var bounds = new google.maps.LatLngBounds(currentLatLng,closestBusStopLatLng);
+    map.fitBounds(bounds);
 
   }
 
