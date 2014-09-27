@@ -11,10 +11,10 @@
 development:
   adapter: mysql2
   encoding: utf8
-  database: hackathon
+  database: jsyjourney
   pool: 5
-  username: hackathon
-  password: hackathon_password
+  username: jsyjourney
+  password: whereismybus
   host: localhost
   socket: /Applications/MAMP/tmp/mysql/mysql.sock
 
@@ -25,19 +25,19 @@ development:
 test:
   adapter: mysql2
   encoding: utf8
-  database: hackathon_test
+  database: jsyjourney_test
   pool: 5
-  username: hackathon
-  password: hackathon_password
+  username: jsyjourney
+  password: whereismybus
   host: localhost
   socket: /Applications/MAMP/tmp/mysql/mysql.sock
 
 production:
   adapter: mysql2
   encoding: utf8
-  database: hackathon_production
+  database: jsyjourney_production
   pool: 25
-  username: hackathon
-  password: hackathon_password
+  username: jsyjourney
+  password: whereismybus
   host: localhost
   # socket: /Applications/MAMP/tmp/mysql/mysql.sock

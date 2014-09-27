@@ -284,12 +284,15 @@ $(document).ready(function() {
       url: "/stops/" + closestBusStop.id + "/next_buses/",
       dataType: "json",
       success: function(data){
+        // console.log(data);
         $.each(data,function(i,item) {
           // console.log(item);
           nextBuses.push(item);
         });
-
         updateInfoPanel();
+      },
+      error: function(data) {
+        console.log(data);
       }
     });
 
@@ -311,7 +314,9 @@ $(document).ready(function() {
     // map.fitBounds(bounds);
 
     // Set some markers for this route so we can see the bus
-    getLiveRouteData(nextBuses[0].route);
+    if (nextBuses[0]) {
+      getLiveRouteData(nextBuses[0].route);
+    }
 
   }
 
