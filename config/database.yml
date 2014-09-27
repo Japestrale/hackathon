@@ -35,7 +35,7 @@ test:
 production:
   adapter: mysql2
   encoding: utf8
-  database: jsyjourney_production
+  database: jsyjourney
   pool: 25
   username: jsyjourney
   password: whereismybus
