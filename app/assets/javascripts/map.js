@@ -4,8 +4,12 @@ $(document).ready(function() {
   var currentLat;
   var currentLng;
   var currentLatLng;
-  var stops = [];
-  var closestStop;
+
+  var busStops = [];
+  var busStopMarkers = [];
+
+  var closestBusStop;
+  var closestBusStopMarker;
   var liveBuses = {};
 
   var directionDisplay;
@@ -21,6 +25,11 @@ $(document).ready(function() {
     { lat: 49.2, lng: -2.13, description: "Text to go in info box" },
   ];
 
+
+  var infoWindow = new google.maps.InfoWindow({
+      content: "none",
+      maxWidth: 500
+  });
 
 
 
@@ -97,8 +106,10 @@ $(document).ready(function() {
 
     map.setCenter(marker.position);
 
-    // Add bus stops to map and compute closest stop
-    // addBusStops();
+    // Add bus busStopMarkers to map and compute closest stop
+    addBusStops();
+
+
     // getLiveRouteData(15);
     // getLiveGeoData(49.21,-2.13);
 
@@ -107,6 +118,7 @@ $(document).ready(function() {
     $.each(placesOfInterest, function(i,item) {
       plotThings(item.lat,item.lng,item.description);
     });
+
 
   }
 
@@ -151,6 +163,7 @@ $(document).ready(function() {
       dataType: "json",
       success: function(data){
         $.each(data,function(i,item) {
+          busStops.push(item);
           plotBusStop(item.latitude,item.longitude);
         });
         findClosestMarker();
@@ -166,14 +179,9 @@ $(document).ready(function() {
       position: pos,
       map: map
     });
-    stops.push(stop);
+    busStopMarkers.push(stop);
   }
 
-
-  var infoWindow = new google.maps.InfoWindow({
-      content: "none",
-      maxWidth: 500
-  });
 
   function plotBus(lat,lng,id) {
 
@@ -197,13 +205,12 @@ $(document).ready(function() {
 
 
   function plotThings(lat,lng,description) {
+
     var pos = new google.maps.LatLng(lat, lng);
     var marker = new google.maps.Marker({
       position: pos,
       map: map
     });
-
-    var description = '<h2 style="width:500px; height: 200px;">The living legend</h2><p>Joe bloggs</p>';
 
     (function (marker, description) {
         google.maps.event.addListener(marker, "click", function (e) {
@@ -223,9 +230,9 @@ $(document).ready(function() {
     var R = 6371; // radius of earth in km
     var distances = [];
     var closest = -1;
-    for( i=0;i<stops.length; i++ ) {
-      var mlat = stops[i].position.lat();
-      var mlng = stops[i].position.lng();
+    for( i=0;i<busStopMarkers.length; i++ ) {
+      var mlat = busStopMarkers[i].position.lat();
+      var mlng = busStopMarkers[i].position.lng();
       var dLat  = rad(mlat - currentLat);
       var dLong = rad(mlng - currentLng);
       var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -233,25 +240,25 @@ $(document).ready(function() {
       var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       var d = R * c;
       distances[i] = d;
-      // stops[i].setTitle("Distance: "+ d);
+      // busStopMarkers[i].setTitle("Distance: "+ d);
       if ( closest == -1 || d < distances[closest] ) {
           closest = i;
       }
     }
 
-    // console.log(stops[closest]);
-    closestStop = stops[closest];
-    stops[closest].setIcon('assets/bus.png');
+    // console.log(busStopMarkers[closest]);
+    closestBusStop = busStops[closest];
+    closestBusStopMarker = busStopMarkers[closest];
+    busStopMarkers[closest].setIcon('assets/bus.png');
     routeToClosestMarker();
 
   }
 
   function routeToClosestMarker () {
 
-
     var request = {
       origin: currentLatLng,
-      destination: closestStop.position,
+      destination: closestBusStopMarker.position,
       travelMode: google.maps.DirectionsTravelMode.WALKING
     };
 
@@ -263,7 +270,28 @@ $(document).ready(function() {
       }
     });
 
+    getNextBuses();
+
   }
+
+  function getNextBuses() {
+
+    // console.log(closestBusStop);
+
+    $.ajax({
+      type: "GET",
+      url: "/stops/" + closestBusStop.id + "/next_buses/",
+      dataType: "json",
+      success: function(data){
+        $.each(data,function(i,item) {
+          console.log(item);
+        });
+      }
+    });
+
+  }
+
+
 
 
 

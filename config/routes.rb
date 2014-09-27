@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
 
-  resources :stops, only: [:index, :show]
+  resources :stops, only: [:index, :show] do
+    member do
+      get 'next_buses'
+    end
+  end
 
   resources :routes, only: [:index, :show] do
     member do
@@ -12,6 +16,7 @@ Rails.application.routes.draw do
   end
 
   root 'static_pages#home'
+
   get 'test' =>'static_pages#test'
 
   # resources :messages do
