@@ -96,16 +96,15 @@ $(document).ready(function() {
     // directionsDisplay.setPanel(document.getElementById("directions-panel"));
     changeMapHeight();
 
+    // This is in here in case the location returns before the map loads
+    // Find position and start things going
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(plotCurrentLocation);
+    } else {
+      console.log('Geolocation not supported');
+    }
+
   }
-
-  // Find position and start things going
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(plotCurrentLocation);
-  } else {
-    console.log('Geolocation not supported');
-  }
-
-
 
 
   $(window).resize(changeMapHeight);
@@ -278,7 +277,7 @@ $(document).ready(function() {
   }
 
   function getNextBuses() {
-    console.log(closestBusStop.id);
+    // console.log(closestBusStop.id);
     $.ajax({
       type: "GET",
       url: "/stops/" + closestBusStop.id + "/next_buses/",
