@@ -14,6 +14,7 @@ $(document).ready(function() {
   var closestBusStopMarker;
   var liveBuses = {};
   var nextBuses = [];
+  var currentStop;
 
   var directionDisplay;
   var directionsService = new google.maps.DirectionsService();
@@ -163,7 +164,7 @@ $(document).ready(function() {
       success: function(data){
         $.each(data,function(i,item) {
           busStops.push(item);
-          plotBusStop(item.latitude,item.longitude);
+          plotBusStop(i,item.latitude,item.longitude);
         });
         findClosestMarker();
       }
@@ -171,7 +172,7 @@ $(document).ready(function() {
   }
 
   // Plots a bus stop on the map
-  function plotBusStop(lat,lng) {
+  function plotBusStop(i,lat,lng) {
 
     var pos = new google.maps.LatLng(lat, lng);
     var marker = new google.maps.Marker({
@@ -180,8 +181,8 @@ $(document).ready(function() {
       icon: 'assets/bus_stop.png'
     });
     marker.setVisible(false); // Hide the bus stop marker
+    marker.metadata = {id: i};
     busStopMarkers.push(marker);
-    setInfoWindow(marker, "This is a bus stop");
   }
 
   // Plots a bus on the map
@@ -234,12 +235,30 @@ $(document).ready(function() {
           Math.cos(rad(currentLat)) * Math.cos(rad(currentLat)) * Math.sin(dLong/2) * Math.sin(dLong/2);
       var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       var d = R * c;
+
+      // Convert distance to m
+      d = Math.round(d * 1000);
+
+      // Add distance to arrays
       distances[i] = d;
-      busStopMarkers[i].setTitle("Distance: "+ d);
+      busStops[i]["distance"] = d;
+
+      // Set the info window for this marker
+      description = busStops[i]["vix_name"] + ': '+ d + 'm';
+      setInfoWindow(busStopMarkers[i], description)
+
       if ( closest == -1 || d < distances[closest] ) {
           closest = i;
       }
+      // Show marker on map
+      busStopMarkers[i].setVisible(true);
+
+      google.maps.event.addListener(busStopMarkers[i], 'click', function() {
+        plotRouteToMarker(this);
+      });
     }
+
+    // console.log(busStops);
 
     // Mark this bus stop as the closest
     closestBusStop = busStops[closest];
@@ -247,10 +266,10 @@ $(document).ready(function() {
     closestBusStopMarker = busStopMarkers[closest];
 
     // Show the marker on the map
-    busStopMarkers[closest].setVisible(true);
+    // busStopMarkers[closest].setVisible(true);
 
     // Plot a route to this marker and display directions
-    routeToClosestMarker();
+    plotRouteToMarker(closestBusStopMarker);
 
     // Set the bounds of the map to just surround you and your closest bus stop
     // bounds = new google.maps.LatLngBounds(currentLatLng,closestBusStopLatLng);
@@ -259,11 +278,11 @@ $(document).ready(function() {
   }
 
   // Plots a route to the current marker and displays walking directions and time
-  function routeToClosestMarker () {
+  function plotRouteToMarker (marker) {
 
     var request = {
       origin: currentLatLng,
-      destination: closestBusStopMarker.position,
+      destination: marker.position,
       travelMode: google.maps.DirectionsTravelMode.WALKING
     };
 
@@ -272,15 +291,22 @@ $(document).ready(function() {
         directionsDisplay.setDirections(response);
       }
     });
-    // map.setZoom(map.getZoom() - 2);
-    getNextBuses();
+
+    // Get the ID of the stop that this marker corresponds to
+    stop = busStops[marker.metadata.id];
+
+    // Find relevant info for this stop and display
+    getNextBuses(stop);
   }
 
-  function getNextBuses() {
-    // console.log(closestBusStop.id);
+  function getNextBuses(stop) {
+
+    nextBuses = []
+    currentStop = stop
+
     $.ajax({
       type: "GET",
-      url: "/stops/" + closestBusStop.id + "/next_buses/",
+      url: "/stops/" + stop.id + "/next_buses/",
       dataType: "json",
       success: function(data){
         // console.log(data);
@@ -289,9 +315,6 @@ $(document).ready(function() {
           nextBuses.push(item);
         });
         updateInfoPanel();
-      },
-      error: function(data) {
-        console.log(data);
       }
     });
 
@@ -303,8 +326,9 @@ $(document).ready(function() {
     // Display info about closest stop
     // console.log(closestBusStop);
     // console.log(nextBuses);
-    $('.closest-stop').html('<h2>' + closestBusStop.vix_name + '</h2>');
+    $('.closest-stop').empty().html('<h2>' + currentStop.vix_name + '</h2>');
 
+    $('.next-buses').empty();
     $.each(nextBuses, function(i,item) {
       $('.next-buses').append('<li># ' + item.route + ' to ' + item.destination + '<span class="eta">' + item.eta + ' MINS</li>');
     });
@@ -320,6 +344,11 @@ $(document).ready(function() {
   }
 
   function getLiveRouteData(route_id) {
+
+    // Remove all old bus data
+    $.each(liveBuses, function(i,item) {
+      item.setMap(null);
+    });
 
     $.ajax({
       type: "GET",
@@ -337,6 +366,7 @@ $(document).ready(function() {
       }
     });
   }
+
 
 
   // function getLiveGeoData(lat,lng) {
