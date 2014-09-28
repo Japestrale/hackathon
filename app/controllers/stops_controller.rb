@@ -12,7 +12,7 @@ class StopsController < ApplicationController
     @stop = Stop.find(params[:id])
     # @stop = Stop.first
 
-    @dataset = 2
+    @dataset = 1
 
     @next_buses = []
 
